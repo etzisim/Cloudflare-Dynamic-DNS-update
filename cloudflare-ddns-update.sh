@@ -37,21 +37,21 @@ else
   echo "Actual IP on DNS-Server for $dnsrecord is $ip_from_dns new ip is $ip"
 fi
 
-zoneid=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$zone&s                                                                                                                                                             tatus=active" \
+zoneid=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$zone&status=active" \
      -H "Authorization: Bearer $api_key" \
      -H "Content-Type:application/json" | jq -r '{"result"}[] | .[0] | .id')
 
 echo "Zoneid for $zone is $zoneid"
 
-dnsrecordid=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zoneid                                                                                                                                                             /dns_records?type=A&name=$dnsrecord" \
+dnsrecordid=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zoneid/dns_records?type=A&name=$dnsrecord" \
      -H "Authorization: Bearer $api_key" \
      -H "Content-Type:application/json" | jq -r '{"result"}[] | .[0] | .id')
 
 echo "DNSrecordid for $dnsrecord is $dnsrecordid"
 
-ip_cloudflare=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone                                                                                                                                                             id/dns_records?type=A&name=$dnsrecord" \
+ip_cloudflare=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zoneid/dns_records?type=A&name=$dnsrecord" \
      -H "Authorization: Bearer $api_key" \
-     -H "Content-Type:application/json" | jq -r '{"result"}[] | .[0] | .content'                                                                                                                                                             )
+     -H "Content-Type:application/json" | jq -r '{"result"}[] | .[0] | .content')
 
 if [ $ip == $ip_cloudflare ]; then
   echo "IP is already up to date IP: $ip"
@@ -61,9 +61,9 @@ else
 fi
 
 # update DNS record
-curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$zoneid/dns_records/$                                                                                                                                                             dnsrecordid" \
+curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$zoneid/dns_records/$dnsrecordid" \
      -H "Authorization: Bearer $api_key" \
      -H "Content-Type:application/json" \
-  --data "{\"type\":\"A\",\"name\":\"$dnsrecord\",\"content\":\"$ip\",\"ttl\":1,                                                                                                                                                             \"proxied\":false}" | jq
+  --data "{\"type\":\"A\",\"name\":\"$dnsrecord\",\"content\":\"$ip\",\"ttl\":1,\"proxied\":false}" | jq
 
 exit 0
