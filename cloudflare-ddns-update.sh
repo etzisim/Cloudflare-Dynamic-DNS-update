@@ -31,8 +31,12 @@ ip=$(curl -s -X GET https://checkip.amazonaws.com)
 ip_from_dns=$(host $dnsrecord | awk '{print $NF}')
 
 
-echo "Current IP is $ip"
-echo "DNSrecord IP is $ip_from_dns"
+if [ $ip == $ip_from_dns ]; then
+  echo "IP on DNS Server is already up to date, IP: $ip"
+  exit 0
+else
+  echo "Actual IP $ip, IP found on DNS Server $ip_from_dns"
+fi
 
 
 zoneid=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$zone&s                                                                                                                                                             tatus=active" \
