@@ -19,9 +19,9 @@ api_key=YOUR-API-Token
 needed_progs=(host jq)
 
 ## check if all commands are installed
-for command in ${needed_progs[@]}; do
-  if ! command -v $command &> /dev/null; then
-    echo "$command could not be found, please install it"
+for prog in ${needed_progs[@]}; do
+  if ! command -v $prog &> /dev/null; then
+    echo "$prog could not be found, please install it"
     exit 1
   fi
 done
@@ -30,14 +30,12 @@ done
 ip=$(curl -s -X GET https://checkip.amazonaws.com)
 ip_from_dns=$(host $dnsrecord | awk '{print $NF}')
 
-
 if [ $ip == $ip_from_dns ]; then
   echo "IP on DNS Server is already up to date, IP: $ip"
   exit 0
 else
-  echo "Actual IP $ip, IP found on DNS Server $ip_from_dns"
+  echo "Actual IP on DNS-Server for $dnsrecord is $ip_from_dns new ip is $ip"
 fi
-
 
 zoneid=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$zone&s                                                                                                                                                             tatus=active" \
      -H "Authorization: Bearer $api_key" \
