@@ -19,7 +19,7 @@ proxied=true
 
 needed_progs=(host jq)
 
-## check if all commands are installed
+# check if all commands are installed
 for prog in ${needed_progs[@]}; do
     if ! command -v $prog &>/dev/null; then
         echo "$prog could not be found, please install it"
@@ -27,16 +27,16 @@ for prog in ${needed_progs[@]}; do
     fi
 done
 
+# Get the current external IP address
 ip=$(curl -s -X GET https://checkip.amazonaws.com)
 
 for dnsrecord in ${dnsrecords[@]}; do
     dnsrecord=$dnsrecord.$zone
-
     skip=false
 
     echo "start with $dnsrecord"
     if ! $proxied; then
-        # Get the current external IP address
+        # Get the current IP address from DNS
         ip_from_dns=$(host -4 $dnsrecord 1.1.1.1 | awk '{print $NF}' | tail -n 1)
 
         if [ $ip == $ip_from_dns ]; then
@@ -46,40 +46,41 @@ for dnsrecord in ${dnsrecords[@]}; do
             echo "Actual IP on DNS-Server for $dnsrecord is $ip_from_dns new ip is $ip"
         fi
     fi
+    # Get the zoneid of the domain
     zoneid=$(
         curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=$zone&status=active" \
         -H "Authorization: Bearer $api_key" \
         -H "Content-Type:application/json" | jq -r '{"result"}[] | .[0] | .id'
     )
 
-    echo "Zoneid for $zone is $zoneid"
-
+    # echo "Zoneid for $zone is $zoneid"
+    # Get the dnsrecordid of the domain
     dnsrecordid=$(
         curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zoneid/dns_records?type=A&name=$dnsrecord" \
         -H "Authorization: Bearer $api_key" \
         -H "Content-Type:application/json" | jq -r '{"result"}[] | .[0] | .id'
     )
 
-    echo "DNSrecordid for $dnsrecord is $dnsrecordid"
-
+    # echo "DNSrecordid for $dnsrecord is $dnsrecordid"
+    # Get the IP of the domain
     ip_cloudflare=$(
         curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zoneid/dns_records?type=A&name=$dnsrecord" \
         -H "Authorization: Bearer $api_key" \
         -H "Content-Type:application/json" | jq -r '{"result"}[] | .[0] | .content'
     )
 
-    echo "Cloudflare: $ip_cloudflare"
-    echo "actual ip : $ip"
-
+    #    echo "Cloudflare: $ip_cloudflare"
+    #    echo "actual ip : $ip"
+    # check if IP is already up to date
     if [ $ip == $ip_cloudflare ]; then
         echo "IP is already up to date IP: $ip"
         skip=true
     else
         echo "Actual IP on Cloudflare for $dnsrecord is $ip_cloudflare new ip is $ip"
     fi
-
+    # update DNS record
     if ! $skip; then
-        # update DNS record
+
         curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$zoneid/dns_records/$dnsrecordid" \
         -H "Authorization: Bearer $api_key" \
         -H "Content-Type:application/json" \
